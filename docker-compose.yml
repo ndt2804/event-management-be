@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:latest
+    container_name: mysql-container-ticket
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456 # Mật khẩu cho root
+      MYSQL_DATABASE: ticket_management # Tên database mặc định
+    ports:
+      - '3306:3306' # Cổng MySQL
+    volumes:
+      - mysql-data:/var/lib/mysql # Lưu trữ dữ liệu của MySQL
+    networks:
+      - mysql-network
+    restart: always # Khởi động lại container khi có lỗi
+
+volumes:
+  mysql-data: # Tạo volume để lưu trữ dữ liệu
+    driver: local
+
+networks:
+  mysql-network: # Định nghĩa mạng riêng cho MySQL
+    driver: bridge
