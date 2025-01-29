@@ -6,10 +6,11 @@ import {
   Get,
   Req,
   Request,
+  Put,
 } from '@nestjs/common';
 import { UserCreateDto } from './dto/user-create.dto';
 import { AuthService } from './auth.service';
-import { UserLoginDto } from './dto/user-login.dto';
+import { UpdateProfileDto } from './dto/user-update.dto';
 import { LocalAuthGuard } from 'src/common/guards/local-auth.guard';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
@@ -36,7 +37,12 @@ export class AuthController {
   getProfile(@Request() req) {
     return {
       message: 'Protected route, user authenticated',
-      user: req.user, // Trả về thông tin người dùng từ request (được gắn vào req.user bởi Passport)
+      user: req.user,
     };
+  }
+  @Put('update-profile')
+  @UseGuards(JwtAuthGuard)
+  async updateProfile(@Request() req, @Body() data: UpdateProfileDto) {
+    return this.authService.updateProfile(req.user.id, data);
   }
 }

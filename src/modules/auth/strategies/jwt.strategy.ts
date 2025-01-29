@@ -14,7 +14,6 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    // Kiểm tra xem user có tồn tại không, có thể thêm logic phân quyền ở đây
     const user = await this.authService.validateJwtUser(payload);
     if (!user) {
       throw new UnauthorizedException('Invalid token');
