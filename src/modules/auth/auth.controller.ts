@@ -39,6 +39,16 @@ export class AuthController {
     return this.authService.logout(body.token);
   }
 
+  @Post('forgot-password')
+  async forgotPassword(@Body('email') email: string) {
+    return this.authService.forgotPassword(email);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body('email') email: string) {
+    return this.authService.sendNewPasswordEmail(email);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Post('active-user')
   async sendActivationEmail(@Body() body: { email: string }) {

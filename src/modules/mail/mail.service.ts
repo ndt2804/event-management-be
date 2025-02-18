@@ -6,6 +6,26 @@ export class MailService {
   constructor() {
     sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   }
+  async sendNewPasswordEmail(email: string, newPassword: string) {
+    const msg = {
+      to: email,
+      from: process.env.SENDGRID_SENDER,
+      subject: 'Your New Password',
+      html: `<p>Your new password is: <strong>${newPassword}</strong></p>`,
+    };
+    await sgMail.send(msg);
+  }
+
+  async sendForgotPasswordEmail(email: string, resetLink: string): Promise<void> {
+    const msg = {
+      to: email,
+      from: process.env.SENDGRID_SENDER,
+      subject: 'Reset Your Password',
+      html: `<p>Click the link below to reset your password:</p><a href="${resetLink}">Reset Password</a>`,
+    };
+    await sgMail.send(msg);
+  }
+
   async sendActivationEmail(email: string, activationLink: string): Promise<void> {
     const senderEmail = process.env.SENDGRID_SENDER;
     const senderName = process.env.SENDGRID_FROM_NAME;

@@ -7,6 +7,7 @@ import { UserCreateDto } from './dto/user-create.dto';
 import { JwtService } from '@nestjs/jwt';
 import { JwtPayload } from './jwt-payload.interface';
 import { UpdateProfileDto } from './dto/user-update.dto';
+import { randomBytes } from 'crypto';
 @Injectable()
 export class AuthService {
   constructor(
@@ -14,6 +15,54 @@ export class AuthService {
     private jwtService: JwtService,
     private mailerService: MailService,
   ) { }
+
+  async sendNewPasswordEmail(email: string) {
+    const user = await this.prismaService.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const newPassword = randomBytes(8).toString('hex');
+    const hashedPassword = await hash(newPassword, 10);
+
+    await this.prismaService.user.update({
+      where: { email },
+      data: { password: hashedPassword },
+    });
+    await this.mailerService.sendNewPasswordEmail(email, newPassword);
+    return { message: 'New password sent to your email successfully' };
+  }
+  async forgotPassword(email: string) {
+    const user = await this.prismaService.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+    }
+
+    const token = this.jwtService.sign({ email }, { secret: process.env.JWT_KEY, expiresIn: '1h' });
+    const resetLink = `http://localhost:3000/api/auth/change-password?token=${token}`;
+
+    await this.mailerService.sendForgotPasswordEmail(email, resetLink);
+
+    return { message: 'Password reset link sent to your email' };
+  }
+
+  async changePassword(token: string, newPassword: string) {
+    try {
+      const payload = this.jwtService.verify(token, { secret: process.env.JWT_KEY });
+      const user = await this.prismaService.user.findUnique({ where: { email: payload.email } });
+      if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+
+      const hashedPassword = await hash(newPassword, 10);
+      await this.prismaService.user.update({
+        where: { email: payload.email },
+        data: { password: hashedPassword },
+      });
+
+      return { message: 'Password changed successfully' };
+    } catch (error) {
+      throw new HttpException('Invalid or expired token', HttpStatus.BAD_REQUEST);
+    }
+  }
   async sendActivationEmail(email: string): Promise<string> {
     const user = await this.prismaService.user.findUnique({
       where: { email },
