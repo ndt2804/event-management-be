@@ -3,6 +3,7 @@ import {
   Body,
   Post,
   UseGuards,
+  Query,
   Get,
   Req,
   Request,
@@ -16,11 +17,11 @@ import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService) { }
   @UseGuards(LocalAuthGuard)
   @Post('login')
   async login(@Body() data: { email: string; password: string }) {
-    return this.authService.login(data);
+    return this.authService.login(data.email, data.password);
   }
 
   @Post('register')
@@ -32,6 +33,33 @@ export class AuthController {
       data: user,
     };
   }
+
+  @Post('logout')
+  async logout(@Body() body: { token: string }) {
+    return this.authService.logout(body.token);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('active-user')
+  async sendActivationEmail(@Body() body: { email: string }) {
+    return this.authService.sendActivationEmail(body.email);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('activate')
+  async activateUser(
+    @Query('email') email: string,
+    @Query('token') token: string,
+  ) {
+    return this.authService.activateUserByEmail(email, token);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('refresh')
+  async refresh(@Body('token') refreshToken: string) {
+    return this.authService.refreshToken(refreshToken);
+  }
+
   @UseGuards(JwtAuthGuard)
   @Get('profile')
   getProfile(@Request() req) {
