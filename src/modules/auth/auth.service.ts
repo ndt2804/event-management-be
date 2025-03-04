@@ -39,20 +39,22 @@ export class AuthService {
     }
 
     const token = this.jwtService.sign({ email }, { secret: process.env.JWT_KEY, expiresIn: '1h' });
-    const resetLink = `http://localhost:3000/api/auth/change-password?token=${token}`;
+    const resetLink = `http://localhost:5173/change-password?token=${token}`;
 
     await this.mailerService.sendForgotPasswordEmail(email, resetLink);
 
     return { message: 'Password reset link sent to your email' };
   }
 
-  async changePassword(token: string, newPassword: string) {
+  async changePassword(token: string, password: string) {
     try {
       const payload = this.jwtService.verify(token, { secret: process.env.JWT_KEY });
       const user = await this.prismaService.user.findUnique({ where: { email: payload.email } });
-      if (!user) throw new HttpException('User not found', HttpStatus.NOT_FOUND);
-
-      const hashedPassword = await hash(newPassword, 10);
+      if (!user) {
+        console.error("❌ User not found:", payload.email);
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      const hashedPassword = await hash(password, 10);
       await this.prismaService.user.update({
         where: { email: payload.email },
         data: { password: hashedPassword },
@@ -60,9 +62,11 @@ export class AuthService {
 
       return { message: 'Password changed successfully' };
     } catch (error) {
-      throw new HttpException('Invalid or expired token', HttpStatus.BAD_REQUEST);
+      console.error("❌ Error changing password:", error.message);
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
   }
+
   async sendActivationEmail(email: string): Promise<string> {
     const user = await this.prismaService.user.findUnique({
       where: { email },
@@ -178,7 +182,6 @@ export class AuthService {
 
     return { accessToken, refreshToken };
   }
-
   async refreshToken(token: string) {
     const payload = this.jwtService.verify(token, {
       secret: process.env.REFRESH_TOKEN_KEY,
@@ -200,7 +203,6 @@ export class AuthService {
   }
 
 
-  // auth.service.ts
 
   async logout(token: string) {
     // Tìm refreshToken theo token
@@ -267,6 +269,9 @@ export class AuthService {
         user: {
           id: user.id,
           email: user.email,
+          fullName: user.fullName,
+          isActive: user.isActive,
+          avatar: user.avatar,
           role: user.role,
         },
         accessToken,

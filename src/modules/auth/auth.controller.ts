@@ -5,9 +5,9 @@ import {
   UseGuards,
   Query,
   Get,
-  Req,
   Request,
   Put,
+  BadRequestException,
 } from '@nestjs/common';
 import { UserCreateDto } from './dto/user-create.dto';
 import { AuthService } from './auth.service';
@@ -25,7 +25,11 @@ export class AuthController {
   }
 
   @Post('register')
-  async register(@Body() body: UserCreateDto): Promise<any> {
+  async register(@Body() body: UserCreateDto & { confirmPassword: string }): Promise<any> {
+    if (body.password !== body.confirmPassword) {
+      throw new BadRequestException('Passwords do not match');
+    }
+
     const user = await this.authService.register(body);
     return {
       status: 'success',
@@ -47,6 +51,10 @@ export class AuthController {
   @Post('reset-password')
   async resetPassword(@Body('email') email: string) {
     return this.authService.sendNewPasswordEmail(email);
+  }
+  @Post('change-password')
+  async changePassword(@Body() body: { token: string; password: string }) {
+    return this.authService.changePassword(body.token, body.password);
   }
 
   @UseGuards(JwtAuthGuard)

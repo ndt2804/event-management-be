@@ -20,6 +20,7 @@ model User {
   fullName      String
   role          Role           @default(USER)
   isActive      Boolean        @default(false)
+  avatar        String?
   tickets       Ticket[]
   payments      Payment[]
   notifications Notification[]
