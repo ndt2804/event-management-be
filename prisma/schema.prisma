@@ -13,57 +13,77 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id            String         @id @unique @default(uuid())
-  email         String         @unique
-  password      String
-  fullName      String
-  role          Role           @default(USER)
-  isActive      Boolean        @default(false)
-  avatar        String?
-  tickets       Ticket[]
-  payments      Payment[]
-  notifications Notification[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-  refreshTokens RefreshToken[]
-}
-
 // 1. Cập nhật schema.prisma để thêm bảng RefreshToken
 model RefreshToken {
   id        String   @id @default(uuid())
-  token     String   @db.Text // Đổi kiểu dữ liệu thành Text thay vì String
+  token     String   @db.Text
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
   expiresAt DateTime
 }
 
+model User {
+  id       String  @id @unique @default(uuid())
+  email    String  @unique
+  password String
+  fullName String
+  role     Role    @default(USER)
+  isActive Boolean @default(false)
+  avatar   String?
+
+  // Quan hệ với các bảng khác
+  events        Event[]        @relation("OrganizerEvents") // Organizer có thể tạo nhiều sự kiện
+  tickets       Ticket[]
+  payments      Payment[]
+  notifications Notification[]
+  refreshTokens RefreshToken[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Event {
-  id           String   @id @unique @default(uuid())
-  title        String
-  description  String
-  location     String
-  startDate    DateTime
-  endDate      DateTime
-  category     String
-  totalTickets Int
-  soldTickets  Int      @default(0)
-  tickets      Ticket[]
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id            String   @id @unique @default(uuid())
+  title         String
+  description   String
+  location      String
+  startDate     DateTime
+  endDate       DateTime
+  saleStartTime DateTime // Thời gian mở bán vé
+  category      String
+  totalTickets  Int
+  soldTickets   Int      @default(0)
+  imageUrl      String?
+
+  // Organizer quản lý sự kiện này
+  organizerId String
+  organizer   User   @relation(fields: [organizerId], references: [id], onDelete: Cascade, name: "OrganizerEvents")
+
+  ticketTypes TicketType[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TicketType {
+  id      String   @id @unique @default(uuid())
+  name    String // Loại vé (VIP, Standard, Economy)
+  price   Float
+  eventId String
+  event   Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tickets Ticket[]
 }
 
 model Ticket {
-  id           String   @id @unique @default(uuid())
-  ticketNumber String   @unique
-  price        Decimal
-  isUsed       Boolean  @default(false)
-  purchaseDate DateTime @default(now())
-  userId       String
-  eventId      String
-  user         User     @relation(fields: [userId], references: [id])
-  event        Event    @relation(fields: [eventId], references: [id])
+  id           String     @id @unique @default(uuid())
+  ticketNumber String     @unique
+  isUsed       Boolean    @default(false)
+  purchaseDate DateTime   @default(now())
+  userId       String?
+  ticketTypeId String
+  user         User?      @relation(fields: [userId], references: [id])
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
 }
 
 model Payment {
